@@ -1,129 +1,104 @@
-// Array global para almacenar los productos registrados
-const lista_productos_registrados = [];
+/**
+ * Genera y descarga un archivo PDF optimizado tanto para navegador de escritorio como para móviles.
+ * 
+ * @param {string} numero_empleado - Identificador del operador.
+ * @param {Array<Object>} lista_productos - Coleccion de productos a exportar.
+ */
+function generar_reporte_pdf(numero_empleado, lista_productos) {
 
-
-// Esperar a que el DOM este completamente cargado
-document.addEventListener('DOMContentLoaded', () => {
-
-    // Referencias a elementos del DOM
-    const boton_iniciar_camara = document.getElementById('boton_iniciar_camara');
-    const boton_detener_camara = document.getElementById('boton_detener_camara');
-    const input_codigo = document.getElementById('codigo_procesado');
-    const input_empleado = document.getElementById('numero_empleado');
-    const formulario_producto = document.getElementById('formulario_producto');
-    const cuerpo_tabla = document.getElementById('cuerpo_tabla_productos');
-    const boton_generar_pdf = document.getElementById('boton_generar_pdf');
-
-
-    // Evento para activar el escaneo por camara
-    boton_iniciar_camara.addEventListener('click', () => {
-
-        iniciar_escaneo_camara(
-            'lector_camara',
-            (codigo_bruto) => {
-                
-                // Procesar la lectura con la logica de prefijos 84 / 241
-                const codigo_validado = procesar_codigo_barra(codigo_bruto);
-
-                if (codigo_validado) {
-                    input_codigo.value = codigo_validado;
-                    detener_escaneo_camara();
-                    boton_iniciar_camara.style.display = 'inline-block';
-                    boton_detener_camara.style.display = 'none';
-                }
-
-            },
-            (error_camara) => {
-
-                // Manejo de diagnostico de permisos y contexto seguro
-                console.error("Error al acceder a la cámara:", error_camara);
-
-                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-                    alert('⚠️ La cámara requiere una conexión segura (HTTPS) para funcionar.');
-                } else {
-                    alert('⚠️ No se pudo acceder a la cámara. Asegúrate de que ninguna otra app la esté usando y recarga la página.');
-                }
-
-            }
-        );
-
-        boton_iniciar_camara.style.display = 'none';
-        boton_detener_camara.style.display = 'inline-block';
-
-    });
-
-
-    // Evento para detener manualmente la camara
-    boton_detener_camara.addEventListener('click', () => {
-
-        detener_escaneo_camara();
-        boton_iniciar_camara.style.display = 'inline-block';
-        boton_detener_camara.style.display = 'none';
-
-    });
-
-
-    // Evento para guardar el producto en la lista
-    formulario_producto.addEventListener('submit', (evento) => {
-
-        evento.preventDefault();
-
-        const nuevo_registro = {
-            empleado: input_empleado.value.trim(),
-            nombre: document.getElementById('nombre_producto').value.trim(),
-            codigo: input_codigo.value.trim(),
-            cantidad: parseInt(document.getElementById('cantidad_producto').value, 10)
-        };
-
-        lista_productos_registrados.push(nuevo_registro);
-
-        actualizar_tabla_productos();
-
-        formulario_producto.reset();
-        boton_generar_pdf.disabled = false;
-
-    });
-
-
-    /**
-     * Renderiza la lista de productos acumulados en la tabla HTML de manera segura.
-     */
-    function actualizar_tabla_productos() {
-
-        cuerpo_tabla.innerHTML = '';
-
-        lista_productos_registrados.forEach((item, indice) => {
-
-            const fila = document.createElement('tr');
-
-            // Escape basico de texto para prevenir XSS
-            fila.innerHTML = `
-                <td>${item.empleado}</td>
-                <td>${item.nombre}</td>
-                <td>${item.codigo}</td>
-                <td>${item.cantidad}</td>
-                <td>
-                    <button class="boton_eliminar" onclick="eliminar_producto(${indice})">❌</button>
-                </td>
-            `;
-
-            cuerpo_tabla.appendChild(fila);
-
-        });
-
+    // Validacion previa de existencia de datos
+    if (!lista_productos || lista_productos.length === 0) {
+        alert("No hay productos registrados para exportar.");
+        return;
     }
 
 
-    // Funcion global para eliminar un registro
-    window.eliminar_producto = function(indice) {
+    // Instanciacion de jsPDF desde el espacio global de nombres
+    const { jsPDF } = window.jspdf;
+    const documento_pdf = new jsPDF();
 
-        lista_productos_registrados.splice(indice, 1);
-        actualizar_tabla_productos();
 
-        if (lista_productos_registrados.length === 0) {
-            boton_generar_pdf.disabled = true;
+    // Encabezado del documento
+    documento_pdf.setFontSize(16);
+    documento_pdf.text("Reporte de Registro de Productos", 14, 20);
+
+    documento_pdf.setFontSize(10);
+    documento_pdf.text(`Número de Empleado: ${numero_empleado || 'No especificado'}`, 14, 28);
+    documento_pdf.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-ES')}`, 14, 34);
+
+
+    // Mapeo de datos para la tabla en el orden requerido: Nombre | Codigo | Cantidad
+    const filas_tabla = lista_productos.map((item) => [
+        item.nombre,
+        item.codigo,
+        item.cantidad
+    ]);
+
+
+    // Encabezados de la tabla
+    const columnas_tabla = ["Nombre", "Código", "Cantidad"];
+
+
+    // Generacion de la tabla automatica
+    documento_pdf.autoTable({
+        startY: 40,
+        head: [columnas_tabla],
+        body: filas_tabla,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [37, 99, 235],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+        },
+        styles: {
+            fontSize: 10,
+            cellPadding: 4
         }
+    });
 
-    };
 
-});
+    // Nombre del archivo con marca de tiempo
+    const fecha_formato = new Date().toISOString().slice(0, 10);
+    const nombre_archivo = `registro_productos_${fecha_formato}.pdf`;
+
+
+    // Metodo de descarga compatible con navegadores moviles (iOS/Android)
+    try {
+
+        // Generar un objeto Blob tipo PDF
+        const blob_pdf = documento_pdf.output('blob');
+        const url_blob = URL.createObjectURL(blob_pdf);
+
+
+        // Crear un elemento de enlace temporal para forzar la descarga en moviles
+        const enlace_descarga = document.createElement('a');
+        enlace_descarga.href = url_blob;
+        enlace_descarga.download = nombre_archivo;
+        enlace_descarga.style.display = 'none';
+
+        document.body.appendChild(enlace_descarga);
+        enlace_descarga.click();
+
+
+        // Limpieza de memoria despues de ejecutar el click
+        setTimeout(() => {
+            document.body.removeChild(enlace_descarga);
+            URL.revokeObjectURL(url_blob);
+        }, 1000);
+
+    } catch (error_descarga) {
+
+        console.error("Error al descargar el PDF en móvil:", error_descarga);
+        
+        // Respaldo secundario si el navegador bloquea la creacion de blobs
+        documento_pdf.save(nombre_archivo);
+
+    }
+
+}
+
+
+// Exportacion global para el navegador
+if (typeof window !== 'undefined') {
+    window.generar_reporte_pdf = generar_reporte_pdf;
+}
