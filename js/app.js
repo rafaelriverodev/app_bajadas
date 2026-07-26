@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /**
- * Arranca la camara e integra la funcion de parseo de codigos de barra.
+ * Arranca la camara e integra la funcion de parseo universal de codigos de barra.
  */
 function iniciar_escaneo() {
 
@@ -137,7 +137,7 @@ function iniciar_escaneo() {
         "lector_camara",
         (codigo_bruto) => {
             
-            // Procesa el codigo mediante la logica de prefijos (84 / 241)
+            // Procesa el codigo mediante la logica de parseo universal
             const codigo_procesado = window.procesar_codigo_barra(codigo_bruto);
 
             if (codigo_procesado) {
@@ -145,7 +145,7 @@ function iniciar_escaneo() {
                 detener_escaneo();
                 elemento_input_nombre.focus();
             } else {
-                console.warn("Código no reconocido o formato no soportado:", codigo_bruto);
+                console.warn("Código de barras no válido:", codigo_bruto);
             }
 
         },
@@ -223,7 +223,7 @@ function agregar_producto() {
 
 
 /**
- * Limpia los campos del formulario manteniendo el numero de empleado para agilizar el flujo.
+ * Limpia los campos del formulario manteniendo el numero de empleado.
  */
 function limpiar_formulario_producto() {
 
@@ -235,7 +235,7 @@ function limpiar_formulario_producto() {
 
 
 /**
- * Renderiza dinamicamente las filas de la tabla de productos agregados.
+ * Renderiza dinamicamente las filas de la tabla de productos con opciones de edicion y eliminacion.
  */
 function renderizar_tabla_productos() {
 
@@ -250,6 +250,9 @@ function renderizar_tabla_productos() {
             <td>${producto.codigo}</td>
             <td>${producto.cantidad}</td>
             <td>
+                <button class="boton_editar_fila" onclick="editar_cantidad_producto(${producto.id})">
+                    Editar Cantidad
+                </button>
                 <button class="boton_eliminar_fila" onclick="eliminar_producto(${producto.id})">
                     Eliminar
                 </button>
@@ -259,6 +262,38 @@ function renderizar_tabla_productos() {
         elemento_cuerpo_tabla.appendChild(fila);
 
     });
+
+}
+
+
+/**
+ * Modifica exclusivamente la cantidad de un producto registrado en la lista.
+ * 
+ * @param {number} id_producto - Identificador unico del producto a editar.
+ */
+function editar_cantidad_producto(id_producto) {
+
+    const producto_encontrado = estado_app.productos.find((prod) => prod.id === id_producto);
+
+    if (!producto_encontrado) {
+        return;
+    }
+
+    const nueva_cantidad_str = prompt(`Editar cantidad para "${producto_encontrado.nombre}":`, producto_encontrado.cantidad);
+
+    if (nueva_cantidad_str === null) {
+        return; // El usuario cancelo la edicion
+    }
+
+    const nueva_cantidad_num = parseInt(nueva_cantidad_str.trim(), 10);
+
+    if (isNaN(nueva_cantidad_num) || nueva_cantidad_num < 1) {
+        alert("⚠️ Ingresa un número entero válido mayor o igual a 1.");
+        return;
+    }
+
+    producto_encontrado.cantidad = nueva_cantidad_num;
+    renderizar_tabla_productos();
 
 }
 
@@ -311,5 +346,6 @@ function exportar_pdf() {
 }
 
 
-// Exportacion de la funcion eliminar al ambito global para los handlers onclick inline
+// Exportacion de funciones al ambito global para los handlers onclick inline
 window.eliminar_producto = eliminar_producto;
+window.editar_cantidad_producto = editar_cantidad_producto;

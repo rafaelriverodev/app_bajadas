@@ -1,5 +1,7 @@
 /**
- * Procesa y valida la lectura de un código de barras según su prefijo.
+ * Procesa y limpia la lectura de un código de barras.
+ * Mantiene la regla especial para prefijos '241' y permite la lectura
+ * universal de cualquier otro código de barras estándar.
  * 
  * @param {string} codigo_entrada - Cadena de texto obtenida del escáner.
  * @returns {string|null} Código procesado o null si la entrada no es válida.
@@ -16,14 +18,27 @@ function procesar_codigo_barra(codigo_entrada) {
     const codigo_limpio = codigo_entrada.trim();
 
 
-    // Regla de negocio: Si inicia por '84' o por '241', se retorna el codigo completo
-    if (codigo_limpio.startsWith('84') || codigo_limpio.startsWith('241')) {
-        return codigo_limpio;
+    // Si la cadena procesada esta vacia tras el trim, retornamos null
+    if (codigo_limpio.length === 0) {
+        return null;
     }
 
 
-    // Retorno por defecto para codigos fuera de patron o lecturas incompletas
-    return null;
+    // Regla de negocio especifica: Si inicia por '241', se formatean los 3 primeros + espacio + siguientes 4 digitos
+    if (codigo_limpio.startsWith('241')) {
+        
+        const digitos_extraidos = codigo_limpio.slice(3, 7);
+
+        // Si se capturan los 4 digitos numericos contiguos, aplicamos la mascara '241 XXXX'
+        if (digitos_extraidos.length === 4 && /^\d{4}$/.test(digitos_extraidos)) {
+            return `241 ${digitos_extraidos}`;
+        }
+
+    }
+
+
+    // Soporte universal: Para cualquier otro codigo (ej: prefijo 84 u otros estándares), se retorna completo
+    return codigo_limpio;
 
 }
 
