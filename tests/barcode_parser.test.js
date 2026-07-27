@@ -2,11 +2,11 @@
 const { procesar_codigo_barra } = require('../js/barcode_parser.js');
 
 
-// Suite de pruebas unitarias para la lectura universal de codigos de barra
-describe('Pruebas de Procesamiento Universal de Códigos de Barra', () => {
+// Suite de pruebas unitarias para el procesamiento uniforme de codigos de barra
+describe('Pruebas de Procesamiento Uniforme de Códigos de Barra', () => {
 
-    // Prueba 1: Validacion de prefijo 84
-    test('Debe retornar el código completo sin alteraciones si inicia por 84', () => {
+    // Prueba 1: Validacion de prefijo 84 (Codigo completo sin modificaciones)
+    test('Debe retornar el código completo tal cual si inicia por 84', () => {
         const codigo_entrada = '8412658794512';
         const resultado = procesar_codigo_barra(codigo_entrada);
         
@@ -14,17 +14,17 @@ describe('Pruebas de Procesamiento Universal de Códigos de Barra', () => {
     });
 
 
-    // Prueba 2: Validacion de prefijo 241 (Formato 241 + espacio + 4 digitos)
-    test('Debe retornar formato "241 XXXX" para codigos que inician por 241', () => {
+    // Prueba 2: Validacion de prefijo 241 (Codigo completo sin espacios ni recortes)
+    test('Debe retornar el código completo tal cual si inicia por 241', () => {
         const codigo_entrada = '2412345678902';
         const resultado = procesar_codigo_barra(codigo_entrada);
         
-        expect(resultado).toBe('241 2345');
+        expect(resultado).toBe('2412345678902');
     });
 
 
-    // Prueba 3: Lectura de cualquier otro codigo de barras estándar
-    test('Debe retornar el código completo para cualquier otro formato de código de barras', () => {
+    // Prueba 3: Validacion de cualquier otro prefijo o formato estandar
+    test('Debe retornar el código completo sin alteraciones para cualquier otro prefijo', () => {
         const codigo_entrada = '7501234567890';
         const resultado = procesar_codigo_barra(codigo_entrada);
         
