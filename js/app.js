@@ -85,6 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
     elemento_boton_pdf = document.getElementById('boton_generar_pdf');
 
 
+    // Permite la edicion o introduccion manual del codigo de barras en todo momento
+    if (elemento_input_codigo) {
+        elemento_input_codigo.removeAttribute('readonly');
+    }
+
+
     // Cargar sesion previa de empleado si existe
     cargar_sesion_empleado();
 
@@ -199,13 +205,16 @@ function agregar_producto() {
         return;
     }
 
+    // Procesar el codigo ingresado manualmente o por escaner mediante la logica de parseo
+    const codigo_final = window.procesar_codigo_barra(codigo_ingresado) || codigo_ingresado;
+
     // Asegurar persistencia de la sesion del empleado
     guardar_sesion_empleado(sanitizar_texto(empleado_ingresado));
 
     // Creacion del objeto saneado
     const nuevo_producto = {
         id: Date.now(),
-        codigo: sanitizar_texto(codigo_ingresado),
+        codigo: sanitizar_texto(codigo_final),
         nombre: sanitizar_texto(nombre_ingresado),
         cantidad: cantidad_ingresada,
         empleado: sanitizar_texto(empleado_ingresado)
@@ -250,10 +259,10 @@ function renderizar_tabla_productos() {
             <td>${producto.codigo}</td>
             <td>${producto.cantidad}</td>
             <td>
-                <button class="boton_editar_fila" onclick="editar_cantidad_producto(${producto.id})">
+                <button type="button" class="boton_editar_fila" onclick="window.editar_cantidad_producto(${producto.id})">
                     Editar Cantidad
                 </button>
-                <button class="boton_eliminar_fila" onclick="eliminar_producto(${producto.id})">
+                <button type="button" class="boton_eliminar_fila" onclick="window.eliminar_producto(${producto.id})">
                     Eliminar
                 </button>
             </td>
@@ -346,6 +355,6 @@ function exportar_pdf() {
 }
 
 
-// Exportacion de funciones al ambito global para los handlers onclick inline
+// Exportacion explicita de funciones al ambito window para garantizar respuesta de eventos en HTML
 window.eliminar_producto = eliminar_producto;
 window.editar_cantidad_producto = editar_cantidad_producto;
